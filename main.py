@@ -6,6 +6,7 @@ from discord import Intents
 from discord.ext import commands
 from discord.ui import Select
 from discord.ui import View
+from discord import app_commands
 from dotenv import load_dotenv
 
 # Setup
@@ -27,6 +28,11 @@ active_games = {}
 
 # Functions
 @client.event
+async def on_ready():
+    print("Bot started.")
+
+
+@client.event
 async def on_message(ctx):
     # Respond to specific user
     if ctx.author.id == annoyed_user:
@@ -40,6 +46,14 @@ async def on_message(ctx):
         file.write(f"{ctx.author.id}: {message}")
         file.close()
     await client.process_commands(ctx)
+
+
+@client.command()
+async def sync_commands(ctx):
+    if ctx.author.id != 827535242520297544:
+        return
+    await client.tree.sync(guild=discord.Object(id=999104412075180152))
+    await ctx.send("Synced.")
 
 
 @client.command()
@@ -87,15 +101,6 @@ async def get_user_log(ctx, user_id=None):
         file.close()
     except FileNotFoundError:
         print("UserLog with that ID doesn't exist")
-
-
-@client.command()
-async def annoy(ctx, user_id=None):
-    global annoyed_user
-    if user_id:
-        annoyed_user = int(user_id[2:-1])
-    else:
-        annoyed_user = False
 
 
 @client.command()
@@ -187,27 +192,10 @@ async def start_game(ctx):
         return
 
 
-@client.command()
-async def test(ctx):
-    select = Select(
-        placeholder="Select an emotion",
-        options=[
-            discord.SelectOption(label='Good', emoji="😄"),
-            discord.SelectOption(label='Neutral', emoji="😐", ),
-            discord.SelectOption(label='Bad', emoji="😔")
-        ])
-    
-    async def my_callback(interaction):
-        await interaction.response.send_message(f"You chose: {select.values[0]}")
-        
-    select.callback = my_callback
-    view = View()
-    view.add_item(select)
-    await ctx.send("How are you feeling?", view=view)
-    
+@client.tree.command(name="ping", description="Gets client ping")
+async def self(interaction: discord.Interaction):
+    await interaction.response.send_message(f"Ping is: {client.latency}")
     
 # Run bot
 load_dotenv()
 client.run(os.getenv("TOKEN"))
-
-
